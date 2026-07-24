@@ -1,0 +1,26 @@
+# room1.map — Platformer Test Level
+
+TILESET "assets/tiles.png" {
+    TILE grass  { id=1, solid=false }
+    TILE dirt   { id=2, solid=true }
+    TILE wall   { id=3, solid=true }
+    TILE spike  { id=4, solid=false, damage=5 }
+    TILE door   { id=5, solid=true, trigger="room2" }
+}
+
+LAYER background {
+    0 0 0 0 0 0 0 0
+    0 1 1 1 1 1 1 0
+    0 2 2 2 2 2 2 0
+    0 2 2 2 2 2 2 0
+}
+
+LAYER collision {
+    0 0 0 0 0 0 0 0
+    0 0 0 0 0 0 0 0
+    0 1 1 1 1 1 1 0
+    0 1 1 1 1 1 1 0
+}
+
+EVENT spawn_player { x=1, y=2 }
+EVENT door_exit    { x=7, y=3, target="room2.map" }

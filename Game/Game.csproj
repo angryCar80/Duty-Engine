@@ -5,6 +5,7 @@
     <ProjectReference Include="..\Engine.Ecs\Engine.Ecs.csproj" />
     <ProjectReference Include="..\Engine.Rendering\Engine.Rendering.csproj" />
     <ProjectReference Include="..\Engine.Math\Engine.Math.csproj" />
+    <ProjectReference Include="..\Engine.MapFormat\Engine.MapFormat.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
