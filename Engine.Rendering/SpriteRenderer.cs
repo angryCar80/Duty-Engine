@@ -17,6 +17,20 @@ public class SpriteRenderer
     {
         _camera = camera;
     }
+
+    private void DrawTexture(IntPtr texture, in SDL.FRect src, in SDL.FRect dst)
+    {
+        SDL.RenderTextureRotated(
+            _renderer,
+            texture,
+            src,
+            dst,
+            0.0,
+            IntPtr.Zero,
+            SDL.FlipMode.None
+        );
+    }
+
     public void Draw(Texture2D texture, Vector2 position)
     {
         Vector2 screenPos = _camera!.WorldToScreen(position);
@@ -31,8 +45,9 @@ public class SpriteRenderer
             H = texture.Height
         };
 
-        SDL.RenderTexture(_renderer, texture.Handle, in src, in dst);
+        DrawTexture(texture.Handle, in src, in dst);
     }
+
     public void Draw(Texture2D texture, Vector2 position, Vector2 scale, float rotation)
     {
         Vector2 screenPos = _camera!.WorldToScreen(position);
@@ -62,7 +77,15 @@ public class SpriteRenderer
         texture.SetAlphaMod(255);
     }
 
-    public void End() {
+    public void Draw(Texture2D texture, SDL.FRect src, Vector2 position)
+    {
+        Vector2 screenPos = _camera!.WorldToScreen(position);
+        var dst = new SDL.FRect { X = screenPos.X, Y = screenPos.Y, W = src.W, H = src.H };
+        DrawTexture(texture.Handle, in src, in dst);
+    }
+
+    public void End()
+    {
         _camera = null;
     }
 }

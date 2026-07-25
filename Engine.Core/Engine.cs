@@ -59,7 +59,9 @@ public class EngineApp
                 Input.ProcessEvent(e);
             }
 
-            _onUpdate?.Invoke(Time.DeltaTime);
+            float dt = Time.DeltaTime;
+            if (dt > 0.1f) dt = 0.1f;
+            _onUpdate?.Invoke(dt);
 
             SDL.SetRenderDrawColor(_renderer, 15, 15, 20, 255);
             SDL.RenderClear(_renderer);

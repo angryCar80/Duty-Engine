@@ -15,4 +15,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="..\Assets\**\*" CopyToOutputDirectory="PreserveNewest" Link="Assets\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>

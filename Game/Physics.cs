@@ -6,18 +6,17 @@ static class Physics
 {
     public static void Update(ref Vector2 position, ref Velocity vel, ref Player player, float dt, List<Rect> platforms)
     {
-        // Apply gravity
         if (!player.Grounded)
             vel.VY += player.Gravity * dt;
 
-        // Clamp fall speed
         if (vel.VY > 600f)
             vel.VY = 600f;
 
-        // Move X first
+        var collider = new Collider { Width = 28, Height = 48 };
+
+        // Move X
         position = new Vector2(position.X + vel.VX * dt, position.Y);
 
-        var collider = new Collider { Width = 28, Height = 48 };
         var playerRect = collider.GetRect(position);
 
         foreach (var plat in platforms)
@@ -25,44 +24,63 @@ static class Physics
             if (!playerRect.Intersects(plat))
                 continue;
 
-            // Resolve X collision
             if (vel.VX > 0)
-            {
-                // Moving right → push left
                 position = new Vector2(plat.Left - collider.Width / 2, position.Y);
-            }
             else if (vel.VX < 0)
-            {
-                // Moving left → push right
                 position = new Vector2(plat.Right + collider.Width / 2, position.Y);
-            }
+
             vel.VX = 0;
+            playerRect = collider.GetRect(position);
         }
 
         // Move Y
-        player.Grounded = false;
         position = new Vector2(position.X, position.Y + vel.VY * dt);
         playerRect = collider.GetRect(position);
+
+        bool foundGround = false;
 
         foreach (var plat in platforms)
         {
             if (!playerRect.Intersects(plat))
                 continue;
 
-            if (vel.VY > 0)
+            if (vel.VY >= 0)
             {
-                // Falling → land on top
                 position = new Vector2(position.X, plat.Top);
                 vel.VY = 0;
-                player.Grounded = true;
+                foundGround = true;
             }
             else if (vel.VY < 0)
             {
-                // Jumping → hit ceiling
                 position = new Vector2(position.X, plat.Bottom + collider.Height);
                 vel.VY = 0;
             }
         }
+
+        // Always check for ground using a 2px extended rect below the player.
+        // This handles the edge-touching case where player bottom == ground top.
+        if (!foundGround)
+        {
+            var belowRect = new Rect(
+                playerRect.X, playerRect.Y,
+                playerRect.Width, playerRect.Height + 2f
+            );
+            foreach (var plat in platforms)
+            {
+                if (!belowRect.Intersects(plat))
+                    continue;
+
+                if (vel.VY >= 0)
+                {
+                    position = new Vector2(position.X, plat.Top);
+                    vel.VY = 0;
+                    foundGround = true;
+                }
+                break;
+            }
+        }
+
+        player.Grounded = foundGround;
 
         // Don't fall off the world
         if (position.Y > 800)
