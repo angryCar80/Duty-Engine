@@ -55,7 +55,8 @@ public class SpriteBatch
                 H = call.Texture.Height
             };
 
-            SDL.RenderTexture(_renderer, call.Texture.Handle, in src, in dst);        }
+            SDL.RenderTextureRotated(_renderer, call.Texture.Handle, src, dst, 0.0, IntPtr.Zero, SDL.FlipMode.None);
+        }
         _drawCalls.Clear();
         _camera = null;
     }

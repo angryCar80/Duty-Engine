@@ -5,4 +5,5 @@
   <Project Path="Engine.Math/Engine.Math.csproj" />
   <Project Path="Engine.Rendering/Engine.Rendering.csproj" />
   <Project Path="Game/Game.csproj" />
+  <Project Path="Engine.Editor/Engine.Editor.csproj" />
 </Solution>

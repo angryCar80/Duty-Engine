@@ -81,7 +81,7 @@ public class SpriteRenderer
     {
         Vector2 screenPos = _camera!.WorldToScreen(position);
         var dst = new SDL.FRect { X = screenPos.X, Y = screenPos.Y, W = src.W, H = src.H };
-        DrawTexture(texture.Handle, in src, in dst);
+        DrawTexture(texture.Handle, src, dst);
     }
 
     public void End()
