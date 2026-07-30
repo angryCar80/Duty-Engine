@@ -2,6 +2,8 @@
 using Engine.Rendering;
 using Engine.Math;
 using Engine.MapFormat;
+using Engine.Physics;
+using Engine.Ecs;
 using SDL3;
 using Game;
 
@@ -14,10 +16,16 @@ var camera = new Camera(1280, 720);
 SpriteRenderer? sr = null;
 Texture2D? playerTex = null;
 
-var playerPos = new Vector2(0, 0);
-var playerVel = new Velocity();
-var player = Player.Create();
-var collider = new Collider { Width = 28, Height = 48 };
+var world = new World();
+
+var player = world.Create();
+world.AddComponent(player, new Engine.Physics.Position { Value = new Vector2(0, 0) });
+world.AddComponent(player, new Velocity());
+world.AddComponent(player, new BoxCollider { Width = 28, Height = 48 });
+world.AddComponent(player, new RigidBody { GravityScale = 1, UseGravity = true, Mass = 1 });
+world.AddComponent(player, new Grounded());
+world.AddComponent(player, PlayerState.Create());
+
 var platforms = new List<Rect>();
 
 var engine = new EngineApp("Platformer", 1280, 720);
@@ -34,14 +42,13 @@ engine.OnInit(() =>
     if (spawn != null)
     {
         var e = spawn.Value;
-        playerPos = new Vector2(e.X * map.TileWidth + map.TileWidth / 2, (e.Y + 1) * map.TileHeight);
+        var p = new Vector2(e.X * map.TileWidth + map.TileWidth / 2, (e.Y + 1) * map.TileHeight);
+        world.Query<Engine.Physics.Position>().ForEach(positions =>
+        {
+            for (int i = 0; i < positions.Length; i++)
+                positions[i] = new Engine.Physics.Position { Value = p };
+        });
     }
-    else
-    {
-        playerPos = new Vector2(200, 500);
-    }
-
-    camera.Position = new Vector2(playerPos.X, playerPos.Y - collider.Height / 2);
 });
 
 engine.OnUpdate((dt) =>
@@ -49,27 +56,49 @@ engine.OnUpdate((dt) =>
     if (engine.Input.IsKeyPressed(SDL.Keycode.Escape))
         engine.Quit();
 
-    playerVel.VX = 0;
-    if (engine.Input.IsKeyDown(SDL.Keycode.A) || engine.Input.IsKeyDown(SDL.Keycode.Left))
+    world.Query<Velocity, PlayerState>().ForEach((velocities, states) =>
     {
-        playerVel.VX = -player.Speed;
-        player.FacingRight = false;
-    }
-    if (engine.Input.IsKeyDown(SDL.Keycode.D) || engine.Input.IsKeyDown(SDL.Keycode.Right))
+        for (int i = 0; i < velocities.Length; i++)
+        {
+            velocities[i].VX = 0;
+            if (engine.Input.IsKeyDown(SDL.Keycode.A) || engine.Input.IsKeyDown(SDL.Keycode.Left))
+            {
+                velocities[i].VX = -states[i].Speed;
+                states[i].FacingRight = false;
+            }
+            if (engine.Input.IsKeyDown(SDL.Keycode.D) || engine.Input.IsKeyDown(SDL.Keycode.Right))
+            {
+                velocities[i].VX = states[i].Speed;
+                states[i].FacingRight = true;
+            }
+        }
+    });
+
+    bool doJump = engine.Input.IsKeyPressed(SDL.Keycode.Space)
+               || engine.Input.IsKeyPressed(SDL.Keycode.W)
+               || engine.Input.IsKeyPressed(SDL.Keycode.Up);
+
+    world.Query<Velocity, Grounded, PlayerState>().ForEach((velocities, groundeds, states) =>
     {
-        playerVel.VX = player.Speed;
-        player.FacingRight = true;
-    }
+        for (int i = 0; i < velocities.Length; i++)
+        {
+            if (groundeds[i].Value && doJump)
+            {
+                velocities[i].VY = states[i].JumpForce;
+                groundeds[i].Value = false;
+            }
+        }
+    });
 
-    if (player.Grounded && (engine.Input.IsKeyPressed(SDL.Keycode.Space) || engine.Input.IsKeyPressed(SDL.Keycode.W) || engine.Input.IsKeyPressed(SDL.Keycode.Up)))
+    PhysicsSystem.Update(world, dt, platforms);
+
+    var playerPos = new Vector2();
+    world.Query<Engine.Physics.Position>().ForEach(positions =>
     {
-        playerVel.VY = player.JumpForce;
-        player.Grounded = false;
-    }
+        playerPos = positions[0].Value;
+    });
 
-    Physics.Update(ref playerPos, ref playerVel, ref player, dt, platforms);
-
-    camera.Follow(new Vector2(playerPos.X, playerPos.Y - collider.Height / 2), dt, 8f);
+    camera.Follow(new Vector2(playerPos.X, playerPos.Y - 24), dt, 8f);
 });
 
 engine.OnRender((renderer) =>
@@ -79,6 +108,12 @@ engine.OnRender((renderer) =>
     sr.Begin(camera);
     tilemap.Render(sr, "background");
     tilemap.Render(sr, "collision");
+
+    var playerPos = new Vector2();
+    world.Query<Engine.Physics.Position>().ForEach(positions =>
+    {
+        playerPos = positions[0].Value;
+    });
 
     var playerDrawPos = new Vector2(
         playerPos.X - playerTex.Width / 2f,

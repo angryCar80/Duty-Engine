@@ -264,6 +264,15 @@ public class World
         return new Query3<T1, T2, T3>(_archetypes);
     }
 
+    public Query4<T1, T2, T3, T4> Query<T1, T2, T3, T4>()
+        where T1 : struct
+        where T2 : struct
+        where T3 : struct
+        where T4 : struct
+    {
+        return new Query4<T1, T2, T3, T4>(_archetypes);
+    }
+
     private Archetype GetOrCreateArchetype(BitArray mask)
     {
         foreach (var arch in _archetypes)
@@ -376,6 +385,26 @@ public struct Query3<T1, T2, T3> where T1 : struct where T2 : struct where T3 : 
         {
             if (!arch.Mask[t1Id] || !arch.Mask[t2Id] || !arch.Mask[t3Id] || arch.Count == 0) continue;
             func(arch.GetColumn<T1>(), arch.GetColumn<T2>(), arch.GetColumn<T3>());
+        }
+    }
+}
+
+public struct Query4<T1, T2, T3, T4> where T1 : struct where T2 : struct where T3 : struct where T4 : struct
+{
+    private readonly List<Archetype> _archetypes;
+
+    public Query4(List<Archetype> archetypes) => _archetypes = archetypes;
+
+    public void ForEach(Action<Span<T1>, Span<T2>, Span<T3>, Span<T4>> func)
+    {
+        int t1Id = ComponentType<T1>.Id;
+        int t2Id = ComponentType<T2>.Id;
+        int t3Id = ComponentType<T3>.Id;
+        int t4Id = ComponentType<T4>.Id;
+        foreach (var arch in _archetypes)
+        {
+            if (!arch.Mask[t1Id] || !arch.Mask[t2Id] || !arch.Mask[t3Id] || !arch.Mask[t4Id] || arch.Count == 0) continue;
+            func(arch.GetColumn<T1>(), arch.GetColumn<T2>(), arch.GetColumn<T3>(), arch.GetColumn<T4>());
         }
     }
 }

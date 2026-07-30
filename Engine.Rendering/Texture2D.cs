@@ -3,7 +3,6 @@ using Engine.Math;
 
 namespace Engine.Rendering;
 
-
 public class Texture2D : IDisposable
 {
     private IntPtr _handle;

@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Engine.Math\Engine.Math.csproj" />
+    <ProjectReference Include="..\Engine.Ecs\Engine.Ecs.csproj" />
+  </ItemGroup>
+</Project>
