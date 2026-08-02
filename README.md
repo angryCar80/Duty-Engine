@@ -12,7 +12,9 @@ The Engine Still Needs Improvments.
 | **Engine.Math** | Vector2, Rect, Color, Transform |
 | **Engine.Rendering** | Texture2D, Camera, SpriteRenderer, SpriteBatch |
 | **Engine.MapFormat** | Custom .map file parser & serializer |
-| **Game** | Platformer demo |
+| **Engine.Physics** | ECS-based 2D AABB physics (gravity, collision, triggers) |
+| **Engine.UI** | SDL3_ttf text rendering, font cache |
+| **Demo.Platformer** | Platformer tech demo |
 
 ## Building
 
@@ -23,7 +25,7 @@ dotnet build
 ## Running
 
 ```bash
-dotnet run --project Game
+dotnet run --project Demo.Platformer
 ```
 
 ## Controls (Platformer)

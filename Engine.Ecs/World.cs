@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Runtime.InteropServices;
 
 namespace Engine.Ecs;
 
@@ -59,6 +60,8 @@ public class Archetype
     }
 
     public Entity GetEntity(int index) => _entities[index];
+
+    public ReadOnlySpan<Entity> GetEntities() => CollectionsMarshal.AsSpan(_entities);
 
     public void AddEntity(Entity e)
     {
@@ -244,6 +247,35 @@ public class World
         _entityLocations.Remove(entity.Id);
     }
 
+    public bool TryGetComponent<T>(Entity entity, out T component) where T : struct
+    {
+        if (_entityLocations.TryGetValue(entity.Id, out var loc))
+        {
+            var arch = _archetypes[loc.archIdx];
+            if (arch.Mask[ComponentType<T>.Id])
+            {
+                component = arch.GetColumn<T>()[loc.row];
+                return true;
+            }
+        }
+
+        component = default;
+        return false;
+    }
+
+    public T GetComponent<T>(Entity entity) where T : struct
+        => TryGetComponent(entity, out T component) ? component : default;
+
+    public void SetComponent<T>(Entity entity, T component) where T : struct
+    {
+        if (!_entityLocations.TryGetValue(entity.Id, out var loc))
+            return;
+
+        var arch = _archetypes[loc.archIdx];
+        if (arch.Mask[ComponentType<T>.Id])
+            arch.GetColumn<T>()[loc.row] = component;
+    }
+
     public Query1<T> Query<T>() where T : struct
     {
         return new Query1<T>(_archetypes);
@@ -350,6 +382,16 @@ public struct Query1<T1> where T1 : struct
             func(arch.GetColumn<T1>());
         }
     }
+
+    public void ForEachEntity(Action<ReadOnlySpan<Entity>, Span<T1>> func)
+    {
+        int t1Id = ComponentType<T1>.Id;
+        foreach (var arch in _archetypes)
+        {
+            if (!arch.Mask[t1Id] || arch.Count == 0) continue;
+            func(arch.GetEntities(), arch.GetColumn<T1>());
+        }
+    }
 }
 
 public struct Query2<T1, T2> where T1 : struct where T2 : struct
@@ -366,6 +408,17 @@ public struct Query2<T1, T2> where T1 : struct where T2 : struct
         {
             if (!arch.Mask[t1Id] || !arch.Mask[t2Id] || arch.Count == 0) continue;
             func(arch.GetColumn<T1>(), arch.GetColumn<T2>());
+        }
+    }
+
+    public void ForEachEntity(Action<ReadOnlySpan<Entity>, Span<T1>, Span<T2>> func)
+    {
+        int t1Id = ComponentType<T1>.Id;
+        int t2Id = ComponentType<T2>.Id;
+        foreach (var arch in _archetypes)
+        {
+            if (!arch.Mask[t1Id] || !arch.Mask[t2Id] || arch.Count == 0) continue;
+            func(arch.GetEntities(), arch.GetColumn<T1>(), arch.GetColumn<T2>());
         }
     }
 }
@@ -387,6 +440,18 @@ public struct Query3<T1, T2, T3> where T1 : struct where T2 : struct where T3 : 
             func(arch.GetColumn<T1>(), arch.GetColumn<T2>(), arch.GetColumn<T3>());
         }
     }
+
+    public void ForEachEntity(Action<ReadOnlySpan<Entity>, Span<T1>, Span<T2>, Span<T3>> func)
+    {
+        int t1Id = ComponentType<T1>.Id;
+        int t2Id = ComponentType<T2>.Id;
+        int t3Id = ComponentType<T3>.Id;
+        foreach (var arch in _archetypes)
+        {
+            if (!arch.Mask[t1Id] || !arch.Mask[t2Id] || !arch.Mask[t3Id] || arch.Count == 0) continue;
+            func(arch.GetEntities(), arch.GetColumn<T1>(), arch.GetColumn<T2>(), arch.GetColumn<T3>());
+        }
+    }
 }
 
 public struct Query4<T1, T2, T3, T4> where T1 : struct where T2 : struct where T3 : struct where T4 : struct
@@ -405,6 +470,19 @@ public struct Query4<T1, T2, T3, T4> where T1 : struct where T2 : struct where T
         {
             if (!arch.Mask[t1Id] || !arch.Mask[t2Id] || !arch.Mask[t3Id] || !arch.Mask[t4Id] || arch.Count == 0) continue;
             func(arch.GetColumn<T1>(), arch.GetColumn<T2>(), arch.GetColumn<T3>(), arch.GetColumn<T4>());
+        }
+    }
+
+    public void ForEachEntity(Action<ReadOnlySpan<Entity>, Span<T1>, Span<T2>, Span<T3>, Span<T4>> func)
+    {
+        int t1Id = ComponentType<T1>.Id;
+        int t2Id = ComponentType<T2>.Id;
+        int t3Id = ComponentType<T3>.Id;
+        int t4Id = ComponentType<T4>.Id;
+        foreach (var arch in _archetypes)
+        {
+            if (!arch.Mask[t1Id] || !arch.Mask[t2Id] || !arch.Mask[t3Id] || !arch.Mask[t4Id] || arch.Count == 0) continue;
+            func(arch.GetEntities(), arch.GetColumn<T1>(), arch.GetColumn<T2>(), arch.GetColumn<T3>(), arch.GetColumn<T4>());
         }
     }
 }

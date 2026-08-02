@@ -59,6 +59,17 @@ public class Texture2D : IDisposable
         return new Texture2D(texture, width, height);
     }
 
+    public static Texture2D FromSurface(IntPtr renderer, IntPtr surface)
+    {
+        IntPtr texture = SDL.CreateTextureFromSurface(renderer, surface);
+        if (texture == IntPtr.Zero)
+            throw new Exception($"Failed to create texture from surface: {SDL.GetError()}");
+
+        SDL.GetTextureSize(texture, out float w, out float h);
+
+        return new Texture2D(texture, (int)w, (int)h);
+    }
+
     public void SetColorMod(byte r, byte g, byte b) => SDL.SetTextureColorMod(_handle, r, g, b);
     public void SetAlphaMod(byte alpha) => SDL.SetTextureAlphaMod(_handle, alpha);
     public void SetBlendMode(SDL.BlendMode mode) => SDL.SetTextureBlendMode(_handle, mode);

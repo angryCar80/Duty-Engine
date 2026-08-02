@@ -1,4 +1,4 @@
-namespace Game;
+namespace Demo.Platformer;
 
 struct PlayerState
 {

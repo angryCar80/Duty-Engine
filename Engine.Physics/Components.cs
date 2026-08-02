@@ -13,12 +13,15 @@ public struct BoxCollider
     public bool IsOneWay;
 }
 
+public enum BodyType { Dynamic, Static, Kinematic }
+
 public struct RigidBody
 {
-    public float Mass;
-    public float GravityScale;
-    public float Bounce;
-    public float Friction;
+    public BodyType Type;
+    public float Mass,
+        GravityScale,
+        Bounce,
+        Friction;
     public bool UseGravity;
     public float ForceX, ForceY;
 }

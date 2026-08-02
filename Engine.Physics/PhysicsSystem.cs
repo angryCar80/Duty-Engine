@@ -8,11 +8,17 @@ public static class PhysicsSystem
     private const float TerminalVelocity = 600f;
     private const float GroundSnap = 2f;
 
-    public static void Update(World world, float dt, List<Rect> staticColliders)
+    private static readonly List<ColliderEntry> Entries = new();
+
+    public static void Update(World world, float dt, List<Rect> staticColliders, CollisionReport report)
     {
+        report.Clear();
+
         ApplyGravityAndForces(world, dt);
         MoveAndResolveX(world, dt, staticColliders);
         MoveAndResolveY(world, dt, staticColliders);
+        ResolveEntityCollisions(world, report);
+        TriggerSystem.Update(world, report);
         UpdateGrounded(world, staticColliders);
     }
 
@@ -24,6 +30,8 @@ public static class PhysicsSystem
             {
                 rigidBodies[i].ForceX = 0;
                 rigidBodies[i].ForceY = 0;
+
+                if (rigidBodies[i].Type != BodyType.Dynamic) continue;
 
                 if (rigidBodies[i].UseGravity)
                     velocities[i].VY += 980f * rigidBodies[i].GravityScale * dt;
@@ -148,6 +156,97 @@ public static class PhysicsSystem
                 }
             }
         });
+    }
+
+    static void ResolveEntityCollisions(World world, CollisionReport report)
+    {
+        Entries.Clear();
+
+        world.Query<Position, BoxCollider>().ForEachEntity((entities, positions, colliders) =>
+        {
+            for (int i = 0; i < entities.Length; i++)
+            {
+                var type = BodyType.Static;
+                if (world.TryGetComponent<RigidBody>(entities[i], out var rb))
+                    type = rb.Type;
+
+                Entries.Add(new ColliderEntry
+                {
+                    Entity = entities[i],
+                    Aabb = GetAABB(positions[i].Value, colliders[i]),
+                    Collider = colliders[i],
+                    Type = type
+                });
+            }
+        });
+
+        for (int i = 0; i < Entries.Count; i++)
+        {
+            for (int j = i + 1; j < Entries.Count; j++)
+            {
+                var a = Entries[i];
+                var b = Entries[j];
+
+                if (a.Collider.IsTrigger || b.Collider.IsTrigger) continue;
+                if (!a.Aabb.Intersects(b.Aabb)) continue;
+
+                bool aCanMove = a.Type == BodyType.Dynamic;
+                bool bCanMove = b.Type == BodyType.Dynamic;
+                if (!aCanMove && !bCanMove) continue;
+
+                float overlapX = MathF.Min(a.Aabb.Right, b.Aabb.Right) - MathF.Max(a.Aabb.Left, b.Aabb.Left);
+                float overlapY = MathF.Min(a.Aabb.Bottom, b.Aabb.Bottom) - MathF.Max(a.Aabb.Top, b.Aabb.Top);
+
+                Vector2 normal;
+                float pen;
+                if (overlapX < overlapY)
+                {
+                    normal = new Vector2(a.Aabb.Center.X < b.Aabb.Center.X ? 1f : -1f, 0f);
+                    pen = overlapX;
+                }
+                else
+                {
+                    normal = new Vector2(0f, a.Aabb.Center.Y < b.Aabb.Center.Y ? 1f : -1f);
+                    pen = overlapY;
+                }
+
+                if (!aCanMove)
+                    MoveEntity(world, b.Entity, normal * pen);
+                else if (!bCanMove)
+                    MoveEntity(world, a.Entity, -normal * pen);
+                else
+                {
+                    MoveEntity(world, a.Entity, -normal * (pen / 2f));
+                    MoveEntity(world, b.Entity, normal * (pen / 2f));
+                }
+
+                report.Collisions.Add(new CollisionEvent
+                {
+                    A = a.Entity,
+                    B = b.Entity,
+                    Normal = normal,
+                    Penetration = pen
+                });
+
+                Entries[i] = a with { Aabb = GetEntityAabb(world, a.Entity, a.Collider) };
+                Entries[j] = b with { Aabb = GetEntityAabb(world, b.Entity, b.Collider) };
+            }
+        }
+    }
+
+    static void MoveEntity(World world, Entity entity, Vector2 delta)
+    {
+        if (!world.TryGetComponent<Position>(entity, out var pos))
+            return;
+
+        pos.Value += delta;
+        world.SetComponent(entity, pos);
+    }
+
+    static Rect GetEntityAabb(World world, Entity entity, BoxCollider collider)
+    {
+        var pos = world.GetComponent<Position>(entity);
+        return GetAABB(pos.Value, collider);
     }
 
     static void UpdateGrounded(World world, List<Rect> staticColliders)

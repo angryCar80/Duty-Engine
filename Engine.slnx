@@ -4,7 +4,8 @@
   <Project Path="Engine.MapFormat/Engine.MapFormat.csproj" />
   <Project Path="Engine.Math/Engine.Math.csproj" />
   <Project Path="Engine.Rendering/Engine.Rendering.csproj" />
-  <Project Path="Game/Game.csproj" />
+  <Project Path="Demo.Platformer/Demo.Platformer.csproj" />
   <Project Path="Engine.Editor/Engine.Editor.csproj" />
   <Project Path="Engine.Physics/Engine.Physics.csproj" />
+  <Project Path="Engine.UI/Engine.UI.csproj" />
 </Solution>
