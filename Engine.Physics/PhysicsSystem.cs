@@ -10,7 +10,7 @@ public static class PhysicsSystem
 
     private static readonly List<ColliderEntry> Entries = new();
 
-    public static void Update(World world, float dt, List<Rect> staticColliders, CollisionReport report)
+    public static void Update(World world, float dt, List<CollisionRect> staticColliders, CollisionReport report)
     {
         report.Clear();
 
@@ -44,11 +44,13 @@ public static class PhysicsSystem
                     velocities[i].VX += rigidBodies[i].ForceX / rigidBodies[i].Mass * dt;
                     velocities[i].VY += rigidBodies[i].ForceY / rigidBodies[i].Mass * dt;
                 }
+                if (rigidBodies[i].Friction > 0)
+                    velocities[i].VX *= MathF.Max(0f, 1f - rigidBodies[i].Friction * dt);
             }
         });
     }
 
-    static void MoveAndResolveX(World world, float dt, List<Rect> staticColliders)
+    static void MoveAndResolveX(World world, float dt, List<CollisionRect> staticColliders)
     {
         world.Query<Position, Velocity, BoxCollider>().ForEach((positions, velocities, colliders) =>
         {
@@ -89,7 +91,7 @@ public static class PhysicsSystem
         });
     }
 
-    static void MoveAndResolveY(World world, float dt, List<Rect> staticColliders)
+    static void MoveAndResolveY(World world, float dt, List<CollisionRect> staticColliders)
     {
         world.Query<Position, Velocity, BoxCollider>().ForEach((positions, velocities, colliders) =>
         {
@@ -111,7 +113,11 @@ public static class PhysicsSystem
                 {
                     if (!aabb.Intersects(plat)) continue;
 
-                    if (colliders[i].IsOneWay && prevBottom > plat.Top) continue;
+                    if (plat.IsOneWay)
+                    {
+                        if (prevBottom > plat.Top) continue;
+                        if (velocities[i].VY < 0) continue;
+                    }
 
                     if (velocities[i].VY >= 0)
                     {
@@ -249,7 +255,7 @@ public static class PhysicsSystem
         return GetAABB(pos.Value, collider);
     }
 
-    static void UpdateGrounded(World world, List<Rect> staticColliders)
+    static void UpdateGrounded(World world, List<CollisionRect> staticColliders)
     {
         world.Query<Position, BoxCollider, Grounded>().ForEach((positions, colliders, groundeds) =>
         {

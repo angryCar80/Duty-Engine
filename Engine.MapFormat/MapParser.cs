@@ -121,6 +121,7 @@ public class MapParser
                 case "solid": tile.Solid = val == "true"; break;
                 case "damage": tile.Damage = int.Parse(val); break;
                 case "trigger": tile.Trigger = val; break;
+                case "oneway": tile.IsOneWay = val == "true"; break;
             }
 
             if (Current().Type == TokenType.COMMA)

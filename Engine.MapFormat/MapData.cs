@@ -19,6 +19,7 @@ public struct TileDef
     public bool Solid;
     public int Damage;
     public string? Trigger;
+    public bool IsOneWay;
 
     public override string ToString()
         => $"Tile({Id}, {Name}, solid={Solid}, damage={Damage}, trigger={Trigger})";

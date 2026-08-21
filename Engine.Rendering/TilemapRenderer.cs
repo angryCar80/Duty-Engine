@@ -1,6 +1,7 @@
 using SDL3;
 using Engine.Math;
 using Engine.MapFormat;
+using Engine.Physics;
 
 namespace Engine.Rendering;
 
@@ -57,9 +58,9 @@ public class TilemapRenderer
         }
     }
 
-    public List<Rect> GetCollisionRects()
+    public List<CollisionRect> GetCollisionRects()
     {
-        var rects = new List<Rect>();
+        var rects = new List<CollisionRect>();
         if (_map == null) return rects;
 
         int idx = _map.Layers.FindIndex(l => l.Name == "collision");
@@ -75,7 +76,13 @@ public class TilemapRenderer
             {
                 if (layer.Data[x, y] == 0) continue;
 
-                rects.Add(new Rect(x * _tileWidth, y * _tileHeight, _tileWidth, _tileHeight));
+                int id = layer.Data[x, y];
+                if (id == 0) continue;
+
+                var tileDef = _map.Tiles.Find(t => t.Id == id);
+                bool isOneWay = tileDef.IsOneWay;
+
+                rects.Add(new CollisionRect(x * _tileWidth, y * _tileHeight, _tileWidth, _tileHeight, isOneWay));
             }
         }
 

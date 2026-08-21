@@ -36,10 +36,13 @@ world.AddComponent(crate, new BoxCollider { Width = 32, Height = 32 });
 world.AddComponent(crate, new RigidBody { Type = BodyType.Dynamic, UseGravity = true, Mass = 1 });
 
 var coin = world.Create();
+bool coinCollected = false;
 world.AddComponent(coin, new Engine.Physics.Position { Value = new Vector2(0, 0) });
 world.AddComponent(coin, new BoxCollider { Width = 24, Height = 24, IsTrigger = true });
 
-var platforms = new List<Rect>();
+
+
+var platforms = new List<CollisionRect>();
 bool collisionLogged = false;
 
 var engine = new EngineApp("Platformer", 1280, 720);
@@ -71,21 +74,28 @@ engine.OnUpdate((dt) =>
     if (engine.Input.IsKeyPressed(SDL.Keycode.Escape))
         engine.Quit();
 
-    world.Query<Velocity, PlayerState>().ForEach((velocities, states) =>
+    world.Query<Velocity, Grounded, PlayerState>().ForEach((velocities, groundeds, states) =>
     {
         for (int i = 0; i < velocities.Length; i++)
         {
-            velocities[i].VX = 0;
+            float inputDir = 0f;
             if (engine.Input.IsKeyDown(SDL.Keycode.A) || engine.Input.IsKeyDown(SDL.Keycode.Left))
             {
-                velocities[i].VX = -states[i].Speed;
+                inputDir = -1f;
                 states[i].FacingRight = false;
             }
             if (engine.Input.IsKeyDown(SDL.Keycode.D) || engine.Input.IsKeyDown(SDL.Keycode.Right))
             {
-                velocities[i].VX = states[i].Speed;
+                inputDir = 1f;
                 states[i].FacingRight = true;
             }
+
+            float target = inputDir * states[i].Speed;
+            bool grounded = groundeds[i].Value;
+            float accel = grounded ? 1800f : 900f;
+            float decel = grounded ? 2400f : 1200f;
+            float step = MathF.Abs(target) > 0.1f ? accel : decel;
+            velocities[i].VX = MathHelper.Approach(velocities[i].VX, target, step * dt);
         }
     });
 
@@ -97,22 +107,30 @@ engine.OnUpdate((dt) =>
     {
         for (int i = 0; i < velocities.Length; i++)
         {
-            if (groundeds[i].Value && doJump)
+            if (doJump && !groundeds[i].Value)
+                states[i].JumpBufferTimer = 0.1f;
+
+            if (groundeds[i].Value && (doJump || states[i].JumpBufferTimer > 0))
             {
                 velocities[i].VY = states[i].JumpForce;
                 groundeds[i].Value = false;
+                states[i].JumpBufferTimer = 0;
             }
+
+            if (states[i].JumpBufferTimer > 0)
+                states[i].JumpBufferTimer -= dt;
         }
+
     });
 
     PhysicsSystem.Update(world, dt, platforms, report);
 
     foreach (var trig in report.Triggers)
     {
-        if (trig.Trigger == coin)
+        if (trig.Trigger == coin && trig.Entered && !coinCollected)
         {
-            if (trig.Entered) Console.WriteLine("COIN ENTERED");
-            if (trig.Exited) Console.WriteLine("COIN EXITED");
+            coinCollected = true;
+            world.DestroyEntity(coin);
         }
     }
 
@@ -143,7 +161,7 @@ engine.OnRender((renderer) =>
 
     sr.Draw(playerTex, new Vector2(playerPos.X - playerTex.Width / 2f, playerPos.Y - playerTex.Height));
     sr.Draw(crateTex, new Vector2(cratePos.X - crateTex.Width / 2f, cratePos.Y - crateTex.Height));
-    sr.Draw(coinTex, new Vector2(coinPos.X - coinTex.Width / 2f, coinPos.Y - coinTex.Height));
+    if (!coinCollected) sr.Draw(coinTex, new Vector2(coinPos.X - coinTex.Width / 2f, coinPos.Y - coinTex.Height));
     sr.End();
 });
 
